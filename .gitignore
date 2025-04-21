@@ -1,1 +1,3 @@
-/target
+target/
+application_data/
+.env
