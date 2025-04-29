@@ -52,12 +52,3 @@ async fn main() {
         write.send(message).await.expect("Failde to send message to server");
     }
 }
-
-fn add_friend() {
-    // First generate and display the keys :
-    let (secret, public_key ) = plume_core::encryption::generate_keys();
-
-    println!("Transmit this private key to add a friend : {}", String::from_utf8(public_key.to_bytes().to_vec()).expect("Unable to get public key"))
-
-    // next input will be dedicated to input x25519 key
-}
