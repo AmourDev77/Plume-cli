@@ -10,4 +10,5 @@ serde_json = "1.0.140"
 tokio = { version = "1.44.2", features = ["full"] }
 tokio-tungstenite = "0.26.2"
 dotenv = "0.15.0"
-plume_core = { path = "../plume_core" }
+plume_core = { git = "https://github.com/AmourDev77/plume_core.git" }
+# plume_core = { path = "../plume_core" }
