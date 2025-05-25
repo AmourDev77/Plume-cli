@@ -1,15 +1,13 @@
 use std::process;
 
-use crate::add_friend;
-
 pub fn command_list() -> Vec<String> {
-    ["/exit", "/add_friend", "/help"]
+    ["/exit", "/add_friend", "/help", "/request_friend"]
         .iter().map(|cmd| cmd.to_string()).collect()
 }
 
 
 pub fn execute_command(command: &str) {
-    match command {
+    match command.split(' ').next().unwrap() {
         "/exit" => {
             process::exit(0);
         },
@@ -18,9 +16,6 @@ pub fn execute_command(command: &str) {
                 print!("{} | ", cmd)
             });
         }
-        "/add_friend" => {
-            add_friend();
-        },
         &_ => {
             println!("Command not implemented yet")
         }
