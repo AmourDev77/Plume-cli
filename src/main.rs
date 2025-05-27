@@ -38,7 +38,7 @@ async fn main() {
     match fs::read(&configs.me.public_ed_path) {
         Ok(file) => {
             let public_ed = String::from_utf8(file).expect("Unable to transform file to string");
-            println!("Your public key is : \n{}", public_ed);
+            // println!("Your public key is : \n{}", public_ed);
             signing_key = String::from_utf8(fs::read(&configs.me.private_ed_path).expect("Invalid file storing signing key")).expect("Invalid key stored in file");
             public_key = public_ed;
         },
@@ -90,7 +90,8 @@ async fn main() {
         loop {
             if let Some(message) = read.next().await {
                 let message = message.expect("Failed to read msg");
-                println!("\x1b[34m{}\x1b[0m", message);
+                // println!("\x1b[34m{}\x1b[0m", message);
+                println!("{}", colors::message(&message.to_string()));
             }
         }
     });
