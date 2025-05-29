@@ -4,10 +4,12 @@ use std::fs::File;
 
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
+use plume_core::config;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 mod commands;
 mod colors;
+mod configs;
 
 #[tokio::main]
 async fn main() {
@@ -23,16 +25,21 @@ async fn main() {
 
     let mut configs: plume_core::config::Config = serde_json::from_reader(reader).expect("Unable to convert this file to json");
 
-    let mut signing_key = String::new();
-    let mut public_key = String::new();
+    let signing_key: String;
+    let public_key: String;
 
+    // if no ed then generate a new one
     if configs.me.public_ed_path.len() == 0 {
-        // Then generate public keys
+        println!("Generating keys");
         let (private_ed, public_ed) = plume_core::encryption::generate_ed_keys();
-        println!("Private : {}", private_ed);
-        println!("Public : {}", public_ed);
-        signing_key = private_ed;
-        public_key = public_ed;
+        // Then store them in a file
+        
+        fs::write(format!("{}/keys/private_ed.pem", config_path), &private_ed).expect("Unable to save private key file");
+        fs::write(format!("{}/keys/public_ed.pem", config_path), &public_ed).expect("Unable to save public key file");
+
+        configs.me.public_ed_path = format!("{}/keys/public_ed.pem", public_ed);
+        configs.me.private_ed_path = format!("{}/keys/private_ed.pem", private_ed);
+        config::update_config(&configs);
     }
 
     match fs::read(&configs.me.public_ed_path) {
@@ -105,8 +112,14 @@ async fn main() {
         input = input[..input.len()-1].to_string();
 
         // Command recognition
-        if let Some(command) = commands::command_list().into_iter().find(|cmd| cmd == &input) {
-            commands::execute_command(&command);
+        if let Some(command) = commands::command_list().into_iter().find(|cmd| cmd == &input.split(" ").next().unwrap()) {
+            let mut args: Vec<&str> = input.split(" ").collect();
+            args.pop();
+            if let Some(packet) = commands::execute_command(&command, args) {
+                println!("Command associated packet = {}", packet);
+                let message = Message::text(packet);
+                write.send(message).await.expect("Failed to send message to server");
+            }
             continue;
         };
 
@@ -116,6 +129,6 @@ async fn main() {
         let signed_message = plume_core::encryption::sign_packet(format!("message__{}__{}__{}", public_key, "future_target" , input), &signing_key);
         let message = Message::text(signed_message);
 
-        write.send(message).await.expect("Failde to send message to server");
+        write.send(message).await.expect("Failed to send message to server");
     }
 }

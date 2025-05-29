@@ -1,16 +1,19 @@
-use std::process;
+use std::{fs, process};
+use plume_core::config::{self, Friend};
 
-use plume_core::encryption;
+use crate::{colors, configs};
 
-use crate::colors;
+pub struct Command {
+    name: String,
+    description: String
+}
 
 pub fn command_list() -> Vec<String> {
     ["/exit", "/add_friend", "/help", "/request_friend"]
         .iter().map(|cmd| cmd.to_string()).collect()
 }
 
-
-pub fn execute_command(command: &str) {
+pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
     match command.split(' ').next().unwrap() {
         "/exit" => {
             process::exit(0);
@@ -19,22 +22,57 @@ pub fn execute_command(command: &str) {
             command_list().iter().for_each(|cmd|  {
                 print!("{} | ", cmd)
             });
+            None
         }
         "/request_friend" => {
-            // TODO: Retrieve target_ed from the parameter
-            let target_ed = String::new();
+            println!("{:?}",args);
+            if args.len() < 2 {
+                println!("{}", colors::error("A path to a public key must be given to use this command"));
+                return None
+            }
 
-            // TODO: Retrieve author_name and author_private_ed from the config file
-            let author_ed = String::new();
-            let author_name = String::new();
-            let author_private_ed = String::new();
+            // Retrieve the key given by the user
+            if !fs::exists(args[1]).expect("Unable to access the given path") {
+                println!("{}", colors::error("Invlaid path provided"));
+                return None
+            }
+
+            let target_ed = String::from_utf8(fs::read(args[1]).expect("Error opening the given path")).expect("Error reading key information");
 
 
-            let [request_packet, author_x_pub, author_x_priv] = plume_core::relay_interaction::request_friend(target_ed, author_ed, author_name, author_private_ed);
-            println!("{}", colors::info("Requesting friend"))
+            // Retrieve the users details 
+            let mut config = configs::get_config();
+            let author_name= &config.me.username;
+
+            let author_ed: String = String::from_utf8(fs::read(&config.me.public_ed_path).expect("Unable to access user's public key")).expect("Unable to read user's public key'");
+            let author_private_ed: String = String::from_utf8(fs::read(&config.me.private_ed_path).expect("Unable to access user's private key")).expect("Unable to read user's private key'");
+
+
+            // Generate the request
+            let [request_packet, _, author_x_priv] = plume_core::relay_interaction::request_friend(&target_ed, &author_ed, author_name, &author_private_ed);
+
+            // Generate new friend and add it to config
+            let friend: Friend = Friend {
+                username: "".to_string(),
+                public_ed: target_ed,
+                profile_picture: "".to_string(),
+                shared_key: "".to_string(),
+                last_sync: "".to_string(),
+                private_x: author_x_priv
+            };
+
+            config.friends.push(friend);
+
+            // Save the config
+            config::update_config(&config);
+
+            println!("{}", colors::info("Requesting friend"));
+
+            Some(request_packet)
         },
         &_ => {
-            println!("Command not implemented yet")
+            println!("Command not implemented yet");
+            None
         }
     }
 }
