@@ -2,14 +2,17 @@ use std::{fs, io::BufReader};
 use std::{env, io};
 use std::fs::File;
 
+use colors::message;
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use plume_core::config;
+use receiver::handle_packet;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 mod commands;
 mod colors;
 mod configs;
+mod receiver;
 
 #[tokio::main]
 async fn main() {
@@ -98,7 +101,7 @@ async fn main() {
             if let Some(message) = read.next().await {
                 let message = message.expect("Failed to read msg");
                 // println!("\x1b[34m{}\x1b[0m", message);
-                println!("{}", colors::message(&message.to_string()));
+                handle_packet(&message.to_string());
             }
         }
     });

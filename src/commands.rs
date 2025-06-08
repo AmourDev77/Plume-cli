@@ -54,14 +54,14 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
             // Generate new friend and add it to config
             let friend: Friend = Friend {
                 username: "".to_string(),
-                public_ed: target_ed,
+                public_ed: target_ed.clone(),
                 profile_picture: "".to_string(),
                 shared_key: "".to_string(),
                 last_sync: "".to_string(),
                 private_x: author_x_priv
             };
 
-            config.friends.push(friend);
+            config.friends.insert(target_ed, friend);
 
             // Save the config
             config::update_config(&config);
