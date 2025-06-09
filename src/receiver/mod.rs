@@ -1,6 +1,7 @@
-use plume_core::config;
+use plume_core::config::{self, FriendRequest};
+use rand::Rng;
 
-use crate::{colors, configs};
+use crate::colors;
 
 pub fn handle_packet(packet: &String) {
     let packet_split: Vec<&str> = packet.split("__").collect();
@@ -32,16 +33,32 @@ pub fn handle_friend_request(author_ed: String, author_x: String, author_name: S
     //      * No then ask for confirmation from the user and send back friend request if ok
 
     // First check if there is an open transaction for this : 
-    let mut configs = configs::get_config();
+    let mut configs = plume_core::config::get_config();
 
     if let Some(friend) = configs.friends.get_mut(&author_ed) {
         // generate key and store friend data
-        let shared_key = plume_core::encryption::generate_shared_key(friend.private_x.clone(), author_x);
+        let shared_key = plume_core::encryption::generate_shared_key(&friend.private_x, &author_x);
         friend.username = author_name;
         friend.shared_key = shared_key;
+
+        return
     }
 
+    // then we create a friend request in the configs, the friend will then be able to accept the
+    // friend request using an other command
+    let friend_request = FriendRequest {
+        friend_public_ed: author_ed,
+        friend_public_x: author_x,
+        username: author_name,
+        profile_picture: "".to_string() // TODO: add the profile picture to the packet handle it
+    };
 
+    let mut rng = rand::rng();
+    let num: u32 = rng.random_range(0..100);
 
+    configs.friend_requests.insert(num.to_string(), friend_request);
+    // println!("{}", colors::info("You received a friend reque"));
+    display_info!("You received a friend request, accept it with /friend_accept {}", num);
+    
     config::update_config(&configs);
 }

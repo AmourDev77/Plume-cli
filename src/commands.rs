@@ -1,12 +1,7 @@
 use std::{fs, process};
-use plume_core::config::{self, Friend};
+use plume_core::{config::{self, Friend}, encryption};
 
-use crate::{colors, configs};
-
-pub struct Command {
-    name: String,
-    description: String
-}
+use crate::colors;
 
 pub fn command_list() -> Vec<String> {
     ["/exit", "/add_friend", "/help", "/request_friend"]
@@ -41,7 +36,7 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
 
 
             // Retrieve the users details 
-            let mut config = configs::get_config();
+            let mut config = plume_core::config::get_config();
             let author_name= &config.me.username;
 
             let author_ed: String = String::from_utf8(fs::read(&config.me.public_ed_path).expect("Unable to access user's public key")).expect("Unable to read user's public key'");
@@ -66,9 +61,43 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
             // Save the config
             config::update_config(&config);
 
-            println!("{}", colors::info("Requesting friend"));
+            display_info!("Sending friend request");
 
             Some(request_packet)
+        },
+        "/accept_friend" => {
+            if args.len() != 2 {
+                display_error!("Invalid commands arguments, please provide a single request_id");
+            }
+
+            // check for a friend request with the given id
+            let mut config = plume_core::config::get_config();
+            if let Some(friend_request) = config.friend_requests.remove(args[1]) {
+                // Generate packet to send to relay & keys
+                let user_public_ed= String::from_utf8(fs::read(config.me.public_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
+                let user_private_ed= String::from_utf8(fs::read(config.me.private_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
+                let [packet, _, author_private_x] = plume_core::relay_interaction::request_friend(&friend_request.friend_public_ed, &user_public_ed, &config.me.username,&user_private_ed);
+                
+                // Generate the new friend data
+                let shared_key = encryption::generate_shared_key(&author_private_x, &friend_request.friend_public_x);
+                let friend = Friend {
+                    public_ed: friend_request.friend_public_ed.clone(),
+                    private_x: author_private_x,
+                    shared_key,
+                    username: friend_request.username.clone(),
+                    profile_picture: friend_request.profile_picture.clone(),
+                    last_sync: "".to_string()
+                };
+
+                // Store the new friend data
+                config.friends.insert(friend_request.friend_public_ed, friend);
+
+
+                return Some(packet);
+            } else {
+                display_error!("No friend request found with this is : {}", args[1]);
+                return None;
+            };
         },
         &_ => {
             println!("Command not implemented yet");

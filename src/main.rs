@@ -2,16 +2,15 @@ use std::{fs, io::BufReader};
 use std::{env, io};
 use std::fs::File;
 
-use colors::message;
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use plume_core::config;
 use receiver::handle_packet;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-mod commands;
+#[macro_use]
 mod colors;
-mod configs;
+mod commands;
 mod receiver;
 
 #[tokio::main]
