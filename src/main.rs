@@ -5,6 +5,7 @@ use std::fs::File;
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use plume_core::config;
+use plume_core::encryption::keys::generate_ed_keys;
 use receiver::handle_packet;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
@@ -31,9 +32,9 @@ async fn main() {
     let public_key: String;
 
     // if no ed then generate a new one
-    if configs.me.public_ed_path.len() == 0 {
+    if configs.me.public_ed_path.is_empty() {
         println!("Generating keys");
-        let (private_ed, public_ed) = plume_core::encryption::generate_ed_keys();
+        let (private_ed, public_ed) = generate_ed_keys();
         // Then store them in a file
         
         fs::write(format!("{}/keys/private_ed.pem", config_path), &private_ed).expect("Unable to save private key file");
@@ -56,7 +57,7 @@ async fn main() {
             println!("{}", err);
             println!("Unable to locate previously generated key, setting up a new one ... ");
 
-            let (private_ed, public_ed) = plume_core::encryption::generate_ed_keys();
+            let (private_ed, public_ed) = generate_ed_keys();
             // write the keys to files
             fs::write(format!("{}/keys/private_ed.pem", config_path), &private_ed).expect("Unable to write key to file");
             fs::write(format!("{}/keys/public_ed.pem", config_path), &public_ed).expect("Unable to write key to file");
@@ -115,8 +116,7 @@ async fn main() {
 
         // Command recognition
         if let Some(command) = commands::command_list().into_iter().find(|cmd| cmd == &input.split(" ").next().unwrap()) {
-            let mut args: Vec<&str> = input.split(" ").collect();
-            args.pop();
+            let args: Vec<&str> = input.split(" ").collect();
             if let Some(packet) = commands::execute_command(&command, args) {
                 println!("Command associated packet = {}", packet);
                 let message = Message::text(packet);

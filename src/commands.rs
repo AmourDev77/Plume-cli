@@ -1,5 +1,5 @@
 use std::{fs, process};
-use plume_core::{config::{self, Friend}, encryption};
+use plume_core::{config::{self, Friend}, packets::relay::friend_request::{self, AuthorInfo}};
 
 use crate::colors;
 
@@ -37,14 +37,26 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
 
             // Retrieve the users details 
             let mut config = plume_core::config::get_config();
-            let author_name= &config.me.username;
 
-            let author_ed: String = String::from_utf8(fs::read(&config.me.public_ed_path).expect("Unable to access user's public key")).expect("Unable to read user's public key'");
+            let author_public_ed: String = String::from_utf8(fs::read(&config.me.public_ed_path).expect("Unable to access user's public key")).expect("Unable to read user's public key'");
             let author_private_ed: String = String::from_utf8(fs::read(&config.me.private_ed_path).expect("Unable to access user's private key")).expect("Unable to read user's private key'");
 
+            // generate a shared key for the friend reqest
+
+            let user_information = AuthorInfo {
+                author_name: &config.me.username,
+                author_private_ed: &author_private_ed,
+                author_public_ed: &author_public_ed,
+                author_picture: &config.me.profile_picture
+            };
 
             // Generate the request
-            let [request_packet, _, author_x_priv] = plume_core::relay_interaction::request_friend(&target_ed, &author_ed, author_name, &author_private_ed);
+            let packet = friend_request::generate_friend_request_packet(&target_ed, user_information, "");// TODO: Generate the shared key
+            
+            if let Err(error) = packet {
+                eprintln!("An error occured : {error}");
+                return None
+            }
 
             // Generate new friend and add it to config
             let friend: Friend = Friend {
@@ -53,7 +65,7 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
                 profile_picture: "".to_string(),
                 shared_key: "".to_string(),
                 last_sync: "".to_string(),
-                private_x: author_x_priv
+                private_x: "".to_string() // TODO: Generate the shared key
             };
 
             config.friends.insert(target_ed, friend);
@@ -63,7 +75,7 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
 
             display_info!("Sending friend request");
 
-            Some(request_packet)
+            Some(packet.unwrap()) // WARNING: there is probably a better way to do, to be checked
         },
         "/accept_friend" => {
             if args.len() != 2 {
@@ -73,27 +85,31 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
             // check for a friend request with the given id
             let mut config = plume_core::config::get_config();
             if let Some(friend_request) = config.friend_requests.remove(args[1]) {
-                // Generate packet to send to relay & keys
-                let user_public_ed= String::from_utf8(fs::read(config.me.public_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
-                let user_private_ed= String::from_utf8(fs::read(config.me.private_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
-                let [packet, _, author_private_x] = plume_core::relay_interaction::request_friend(&friend_request.friend_public_ed, &user_public_ed, &config.me.username,&user_private_ed);
-                
-                // Generate the new friend data
-                let shared_key = encryption::generate_shared_key(&author_private_x, &friend_request.friend_public_x);
-                let friend = Friend {
-                    public_ed: friend_request.friend_public_ed.clone(),
-                    private_x: author_private_x,
-                    shared_key,
-                    username: friend_request.username.clone(),
-                    profile_picture: friend_request.profile_picture.clone(),
-                    last_sync: "".to_string()
-                };
-
+                // // Generate packet to send to relay & keys
+                // let user_public_ed= String::from_utf8(fs::read(config.me.public_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
+                // let user_private_ed= String::from_utf8(fs::read(config.me.private_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
+                //
+                // let [packet, _, author_private_x] = relay::request_friend(&friend_request.friend_public_ed, &user_public_ed, &config.me.username,&user_private_ed);
+                // 
+                // // Generate the new friend data
+                // let shared_key = encryption::keys::generate_shared_key(&author_private_x, &friend_request.friend_public_x).expect("Error generating key"); 
+                // let friend = Friend {
+                //     public_ed: friend_request.friend_public_ed.clone(),
+                //     private_x: author_private_x,
+                //     shared_key,
+                //     username: friend_request.username.clone(),
+                //     profile_picture: friend_request.profile_picture.clone(),
+                //     last_sync: "".to_string()
+                // };
+                //
+                //
+                // TODO: Rewrite the process
+                //
                 // Store the new friend data
-                config.friends.insert(friend_request.friend_public_ed, friend);
+                // config.friends.insert(friend_request.friend_public_ed, friend);
 
 
-                return Some(packet);
+                return Some("".to_string());
             } else {
                 display_error!("No friend request found with this is : {}", args[1]);
                 return None;

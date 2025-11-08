@@ -17,8 +17,11 @@ pub fn handle_packet(packet: &String) {
         "friend_request" => {
             handle_friend_request(String::from(packet_split[1]), String::from(packet_split[3]), String::from(packet_split[4]));
         },
+        "announcement" => {
+            display_info!("{}", packet_split[1]);
+        },
         _ => {
-            println!("{} not a valid packet type", colors::error("Invalid packet received :"))
+            display_error!("Invalid packet received : Not a valid packet type : {}", packet_split[0])
         }
     }
 }
@@ -37,7 +40,8 @@ pub fn handle_friend_request(author_ed: String, author_x: String, author_name: S
 
     if let Some(friend) = configs.friends.get_mut(&author_ed) {
         // generate key and store friend data
-        let shared_key = plume_core::encryption::generate_shared_key(&friend.private_x, &author_x);
+        let shared_key = plume_core::encryption::keys::generate_shared_key(&friend.private_x, &author_x).expect("Error generating the key"); // TODO: Handle error here
+
         friend.username = author_name;
         friend.shared_key = shared_key;
 
@@ -57,7 +61,6 @@ pub fn handle_friend_request(author_ed: String, author_x: String, author_name: S
     let num: u32 = rng.random_range(0..100);
 
     configs.friend_requests.insert(num.to_string(), friend_request);
-    // println!("{}", colors::info("You received a friend reque"));
     display_info!("You received a friend request, accept it with /friend_accept {}", num);
     
     config::update_config(&configs);
