@@ -1,5 +1,5 @@
 use std::{fs, process};
-use plume_core::{config::{self, Friend}, packets::relay::friend_request::{self, AuthorInfo}};
+use plume_core::{config::{self, Friend}, packets::relay::friend_request::{self, retrieve_published_x, AuthorInfo}};
 
 use crate::colors;
 
@@ -20,6 +20,7 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
             None
         }
         "/request_friend" => {
+            // TODO: REMAKE FRIEND REQUEST USING THE NEW PROCESS WITH SHARED_X
             println!("{:?}",args);
             if args.len() < 2 {
                 println!("{}", colors::error("A path to a public key must be given to use this command"));
@@ -88,6 +89,10 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
                 // Generate packet to send to relay & keys
                 let user_public_ed= String::from_utf8(fs::read(config.me.public_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
                 let user_private_ed= String::from_utf8(fs::read(config.me.private_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
+
+                // retrieve the target ed in the transactions
+                let published_key_pacet = retrieve_published_x(target_public_ed, author_public_ed, author_private_ed);
+
 
                 // Retrieve the user published_x in the transaction
 
