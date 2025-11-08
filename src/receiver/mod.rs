@@ -3,7 +3,7 @@ use rand::Rng;
 
 use crate::colors;
 
-pub fn handle_packet(packet: &String) {
+pub fn handle_packet(packet: &str) {
     let packet_split: Vec<&str> = packet.split("__").collect();
 
     match packet_split[0] {
@@ -20,6 +20,9 @@ pub fn handle_packet(packet: &String) {
         "announcement" => {
             display_info!("{}", packet_split[1]);
         },
+        "published_x" => {
+            retrival_of_published_x(packet_split[2], packet_split[3]);
+        },
         _ => {
             display_error!("Invalid packet received : Not a valid packet type : {}", packet_split[0])
         }
@@ -28,6 +31,12 @@ pub fn handle_packet(packet: &String) {
 
 pub fn print_message(message: String) {
     println!("{}", colors::message(&message));
+}
+
+pub fn retrival_of_published_x(uiser_ed: &str, published_x: &str) {
+    println!("Retrieved the following published_x_key");
+    // if the friend is in the transaction folder, then prepare and send the 
+    // else just ignore it ... that means we received a published x for no reason.
 }
 
 pub fn handle_friend_request(author_ed: String, author_x: String, author_name: String) {

@@ -85,10 +85,12 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
             // check for a friend request with the given id
             let mut config = plume_core::config::get_config();
             if let Some(friend_request) = config.friend_requests.remove(args[1]) {
-                // // Generate packet to send to relay & keys
-                // let user_public_ed= String::from_utf8(fs::read(config.me.public_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
-                // let user_private_ed= String::from_utf8(fs::read(config.me.private_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
-                //
+                // Generate packet to send to relay & keys
+                let user_public_ed= String::from_utf8(fs::read(config.me.public_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
+                let user_private_ed= String::from_utf8(fs::read(config.me.private_ed_path).expect("Unable to access the local signign key")).expect("Invalid key file stored");
+
+                // Retrieve the user published_x in the transaction
+
                 // let [packet, _, author_private_x] = relay::request_friend(&friend_request.friend_public_ed, &user_public_ed, &config.me.username,&user_private_ed);
                 // 
                 // // Generate the new friend data
@@ -109,11 +111,13 @@ pub fn execute_command(command: &str, args: Vec<&str>) -> Option<String> {
                 // config.friends.insert(friend_request.friend_public_ed, friend);
 
 
-                return Some("".to_string());
+                Some("".to_string())
             } else {
                 display_error!("No friend request found with this is : {}", args[1]);
-                return None;
+                None
             };
+
+            None // Defalt return statement
         },
         &_ => {
             println!("Command not implemented yet");
